@@ -17,7 +17,6 @@ func (u Users) New(w http.ResponseWriter, req *http.Request) {
 	}
 	data.Email = req.FormValue("email")
 	u.Templates.New.Execute(w, data)
-
 }
 
 func (u Users) Create(w http.ResponseWriter, req *http.Request) {
