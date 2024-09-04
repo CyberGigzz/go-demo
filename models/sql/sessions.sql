@@ -1,5 +1,5 @@
-CREATE TABLE users (
+CREATE TABLE sessions (
   id SERIAL PRIMARY KEY,
-  email TEXT UNIQUE NOT NULL,
-  password_hash TEXT NOT NULL
+  user_id INT UNIQUE ,
+  token_hash TEXT UNIQUE NOT NULL
 );
