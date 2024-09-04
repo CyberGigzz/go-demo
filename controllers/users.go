@@ -16,12 +16,12 @@ type Users struct {
 
 }
 
-func (u Users) New(w http.ResponseWriter, req *http.Request) {
+func (u Users) New(w http.ResponseWriter, r *http.Request) {
 	var data struct {
 		Email string
 	}
-	data.Email = req.FormValue("email")
-	u.Templates.New.Execute(w, data)
+	data.Email = r.FormValue("email")
+	u.Templates.New.Execute(w, r, data)
 }
 
 func (u Users) Create(w http.ResponseWriter, r *http.Request) {
@@ -40,12 +40,12 @@ func (u Users) Create(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "User Created %+v", user)
 }
 
-func (u Users) Signin(w http.ResponseWriter, req *http.Request) {
+func (u Users) Signin(w http.ResponseWriter, r *http.Request) {
 	var data struct {
 		Email string
 	}
-	data.Email = req.FormValue("email")
-	u.Templates.Signin.Execute(w, data)
+	data.Email = r.FormValue("email")
+	u.Templates.Signin.Execute(w, r, data)
 }
 
 func (u Users) ProcessSignIn(w http.ResponseWriter, r *http.Request) {
