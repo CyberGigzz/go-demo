@@ -13,6 +13,8 @@ type Users struct {
 		Signin Template
 	}
 	UserService  *models.UserService
+	SessionService  *models.SessionService
+
 
 }
 
@@ -37,6 +39,16 @@ func (u Users) Create(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Something went wrong", http.StatusInternalServerError)
 		return
 	}
+
+	session, err := u.SessionService.Create(user.ID)
+	if err != nil {
+		fmt.Println(err)
+		// http.Error(w, "Something went wrong.", http.StatusInternalServerError)
+		http.Redirect(w, r, "/signin", http.StatusFound)
+		return
+	}
+
+	setCookie(w, CookieSession, session.Token)
 	fmt.Fprintf(w, "User Created %+v", user)
 }
 
@@ -61,35 +73,36 @@ func (u Users) ProcessSignIn(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Something went wrong.", http.StatusInternalServerError)
 		return
 	}
-	cookie := http.Cookie{
-		Name: "email",
-		Value: user.Email,
-		Path: "/",
-		HttpOnly: true,
-	}
-	http.SetCookie(w, &cookie)
 
-	// session, err := u.SessionService.Create(user.ID)
-	// if err != nil {
-	// 	fmt.Println(err)
-	// 	http.Error(w, "Something went wrong.", http.StatusInternalServerError)
-	// 	return
-	// }
+	session, err := u.SessionService.Create(user.ID)
+	if err != nil {
+		fmt.Println(err)
+		http.Error(w, "Something went wrong.", http.StatusInternalServerError)
+		return
+	}
+	setCookie(w, CookieSession, session.Token)
 	// setCookie(w, CookieSession, session.Token)
-	// http.Redirect(w, r, "/galleries", http.StatusFound)
-	fmt.Fprintf(w, "User authenticated: %+v", user)
+	http.Redirect(w, r, "/users/me", http.StatusFound)
 }
 
 func (u Users) CurrentUser(w http.ResponseWriter, r *http.Request) {
-	email, err := r.Cookie("email")
+
+	token, err := readCookie(r, CookieSession)
 	if err != nil {
-		fmt.Fprint(w, "cannot be read")
+		fmt.Println(err)
+		http.Redirect(w, r, "/signin", http.StatusFound)
 		return
 	}
+	user, err := u.SessionService.User(token)
+	if err != nil {
+		fmt.Println(err)
+		http.Redirect(w, r, "/signin", http.StatusFound)
+		return
+	}
+
 	// user := context.User(r.Context())
 	// fmt.Fprintf(w, "Current user: %s\n", user.Email)
-	fmt.Fprintf(w, "Current user: %s\n", email.Value)
-	fmt.Fprintf(w, "Current user: %s\n", r.Header)
+	fmt.Fprintf(w, "Current user: %s\n", user.Email)
 
 
 }
