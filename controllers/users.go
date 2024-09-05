@@ -49,7 +49,7 @@ func (u Users) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	setCookie(w, CookieSession, session.Token)
-	fmt.Fprintf(w, "User Created %+v", user)
+	http.Redirect(w, r, "/users/me", http.StatusFound)
 }
 
 func (u Users) Signin(w http.ResponseWriter, r *http.Request) {
