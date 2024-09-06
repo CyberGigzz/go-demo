@@ -15,7 +15,6 @@ type Users struct {
 	UserService  *models.UserService
 	SessionService  *models.SessionService
 
-
 }
 
 func (u Users) New(w http.ResponseWriter, r *http.Request) {
@@ -81,7 +80,6 @@ func (u Users) ProcessSignIn(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	setCookie(w, CookieSession, session.Token)
-	// setCookie(w, CookieSession, session.Token)
 	http.Redirect(w, r, "/users/me", http.StatusFound)
 }
 
