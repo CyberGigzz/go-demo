@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/CyberGigzz/go-demo/controllers"
+	"github.com/CyberGigzz/go-demo/migrations"
 	"github.com/CyberGigzz/go-demo/models"
 	"github.com/CyberGigzz/go-demo/templates"
 	"github.com/CyberGigzz/go-demo/views"
@@ -30,6 +31,12 @@ func main() {
 		panic(err)
 	}
 	defer db.Close()
+
+	err = models.MigrateFS(db, migrations.FS, "")
+	if err != nil {
+		panic(err)
+	}
+
 	userService := models.UserService{
 		DB: db,
 	}
