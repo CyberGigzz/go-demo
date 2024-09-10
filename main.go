@@ -14,24 +14,12 @@ import (
 )
 
 func main() {
-	r := chi.NewRouter()
-
-	tpl := views.Must(views.ParseFS(templates.FS, "home.gohtml", "tailwind.gohtml"))
-	r.Get("/", controllers.StaticHandler(tpl))
-
-	tpl = views.Must(views.ParseFS(templates.FS, "contact.gohtml", "tailwind.gohtml"))
-	r.Get("/contact", controllers.StaticHandler(tpl))
-
-	tpl = views.Must(views.ParseFS(templates.FS, "faq.gohtml", "tailwind.gohtml"))
-	r.Get("/faq", controllers.FAQ(tpl))
-
 	cfg := models.DefaultPostgresConfig()
 	db, err := models.Open(cfg)
 	if err != nil {
 		panic(err)
 	}
 	defer db.Close()
-
 	err = models.MigrateFS(db, migrations.FS, "")
 	if err != nil {
 		panic(err)
@@ -44,6 +32,15 @@ func main() {
 		DB: db,
 	}
 
+	umw := controllers.UserMiddleware{
+		SessionService: &sessionService,
+	}
+	csrfKey := "8da6e741c462b151e57f89256b37d903a04d7a2f0164f9c3b07e8a73d3ca8000"
+	csrfMw := csrf.Protect(
+		[]byte(csrfKey),
+		 csrf.Secure(false),
+	)
+
 	usersC := controllers.Users{
 		UserService: &userService,
 		SessionService: &sessionService,
@@ -51,27 +48,30 @@ func main() {
 	usersC.Templates.New = views.Must(views.ParseFS(templates.FS, "signup.gohtml", "tailwind.gohtml"))
 	usersC.Templates.Signin = views.Must(views.ParseFS(templates.FS, "signin.gohtml", "tailwind.gohtml"))
 
+	r := chi.NewRouter()
+	r.Use(csrfMw)
+	r.Use(umw.SetUser)
+	tpl := views.Must(views.ParseFS(templates.FS, "home.gohtml", "tailwind.gohtml"))
+	r.Get("/", controllers.StaticHandler(tpl))
+	tpl = views.Must(views.ParseFS(templates.FS, "contact.gohtml", "tailwind.gohtml"))
+	r.Get("/contact", controllers.StaticHandler(tpl))
+	tpl = views.Must(views.ParseFS(templates.FS, "faq.gohtml", "tailwind.gohtml"))
+	r.Get("/faq", controllers.FAQ(tpl))
 	r.Get("/signup", usersC.New)
 	r.Post("/users", usersC.Create)
 	r.Get("/signin", usersC.Signin)
 	r.Post("/signin", usersC.ProcessSignIn)
 	r.Post("/signout", usersC.ProcessSignOut)
-	r.Get("/users/me", usersC.CurrentUser)
-
+	r.Route("/users/me", func(r chi.Router) {
+		r.Use(umw.RequireUser)
+		r.Get("/", usersC.CurrentUser)
+	})
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Page not found", http.StatusNotFound)
 	})
 
-	csrfKey := "8da6e741c462b151e57f89256b37d903a04d7a2f0164f9c3b07e8a73d3ca8000"
-
-	csrfMw := csrf.Protect(
-		[]byte(csrfKey),
-		 csrf.Secure(false),
-	)
-
 	log.Println("Starting server on :3000")
-	if err := http.ListenAndServe(":3000", csrfMw(r),  ); err != nil {
+	if err := http.ListenAndServe(":3000", r); err != nil {
 		log.Fatalf("Server failed: %v", err)
 	}
-
 }
