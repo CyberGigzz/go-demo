@@ -4,6 +4,7 @@ import (
 	// "context"
 	"fmt"
 	"net/http"
+	"net/url"
 
 	"github.com/CyberGigzz/go-demo/context"
 	"github.com/CyberGigzz/go-demo/models"
@@ -13,10 +14,13 @@ type Users struct {
 	Templates struct {
 		New Template
 		Signin Template
+		ForgotPassword Template
+		CheckYourEmail Template
 	}
 	UserService  *models.UserService
 	SessionService  *models.SessionService
-
+	PasswordResetService *models.PasswordResetService
+	EmailService *models.EmailService
 }
 
 func (u Users) New(w http.ResponseWriter, r *http.Request) {
@@ -106,6 +110,38 @@ func (u Users) CurrentUser(w http.ResponseWriter, r *http.Request) {
 	user := context.User(r.Context())
 	fmt.Fprintf(w, "Current user: %s\n", user.Email)
 
+}
+
+func (u Users) ForgotPassword(w http.ResponseWriter, r *http.Request) {
+	var data struct {
+		Email string
+	}
+	data.Email = r.FormValue("email")
+	u.Templates.ForgotPassword.Execute(w, r, data)
+}
+
+func (u Users) ProcessForgotPassword(w http.ResponseWriter, r *http.Request) {
+	var data struct {
+		Email string
+	}
+	data.Email = r.FormValue("email")
+	pwReset, err := u.PasswordResetService.Create(data.Email)
+	if err != nil {
+		fmt.Println(err)
+		http.Error(w, "Something went wrong.", http.StatusInternalServerError)
+		return
+	}
+	vals := url.Values{
+		"token": {pwReset.Token},
+	}
+	resetURL := "https://www.lenslocked.com/reset-pw?" + vals.Encode()
+	err = u.EmailService.ForgotPassword(data.Email, resetURL)
+	if err != nil {
+		fmt.Println(err)
+		http.Error(w, "Something went wrong.", http.StatusInternalServerError)
+		return
+	}
+	u.Templates.CheckYourEmail.Execute(w, r, data)
 }
 
 type UserMiddleware struct {
