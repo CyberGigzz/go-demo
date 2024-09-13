@@ -107,7 +107,6 @@ func main() {
 		"reset-pw.gohtml", "tailwind.gohtml",
 	))
 
-
 	r := chi.NewRouter()
 	r.Use(csrfMw)
 	r.Use(umw.SetUser)
